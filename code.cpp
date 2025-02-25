@@ -52,7 +52,6 @@ void printDungeon(char** dungeon, int size) {
         cout << endl;
     }
 }
-
 bool isValidMove(char tile, bool hasBoat, bool hasGear, int& health, string& message) {
     if (tile == WATER && !hasBoat) {
         health--;
@@ -226,18 +225,18 @@ int main() {
     switch (diff) {
         case 1:
             cout << "Welcome to the Abyssal Crypt, a dungeon buried deep beneath an ancient ruin. Though no one has ever seen it, rumors say there lies a deep curse that seems to enchant everything that lies there, for the good or bad." << endl;
-            size = 6;
-            chest_amt = 4;
+            size = 4;
+            chest_amt = 2;
             break;
         case 2:
             cout << "Welcome to the Darkreach Catacombs where life is taken and remade into something more ... sinister." << endl;
-            size = 9;
-            chest_amt = 5;
+            size = 6;
+            chest_amt = 3;
             break;
         case 3:
             cout << "Welcome to the Forsaken Vaults is supposedly a place for those deemed too dangerous and volatile for the real world to see. However, the real reason behind the creation of the vaults remains a mystery." << endl;
-            size = 12;
-            chest_amt = 6;
+            size = 8;
+            chest_amt = 4;
             break;
         default:
             cout << "You accidentally selected an invalid option and died of boredom, bye! :)" << endl;
