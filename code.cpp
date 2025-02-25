@@ -6,6 +6,7 @@
 #include <chrono>
 #include <queue>
 #include <utility>
+#include <limits>
 
 using namespace std;
 
@@ -18,32 +19,61 @@ const char ROCKS = 'R';
 const int MAX_HEALTH = 3;
 
 void clearScreen() {
-    std::cout << "\033[2J\033[H";
+    cout << "\033[2J\033[H";
 }
 
 void printDungeon(char** dungeon, int size) {
     for (int i = 0; i < size; ++i) {
         for (int j = 0; j < size; ++j) {
-            cout << dungeon[i][j] << ' ';
+            switch (dungeon[i][j]) {
+                case PLAYER:
+                    cout << "\033[31m" << PLAYER << "\033[0m "; // Red
+                    break;
+                case TRESURE:
+                    cout << "\033[33m" << TRESURE << "\033[0m "; // Yellow
+                    break;
+                case MONSTER:
+                    cout << "\033[32m" << MONSTER << "\033[0m "; // Green
+                    break;
+                case GROUND:
+                    cout << "\033[37m" << GROUND << "\033[0m "; // White
+                    break;
+                case WATER:
+                    cout << "\033[34m" << WATER << "\033[0m "; // Blue
+                    break;
+                case ROCKS:
+                    cout << "\033[90m" << ROCKS << "\033[0m "; // Gray
+                    break;
+                default:
+                    cout << dungeon[i][j] << " "; // Default (no color)
+                    break;
+            }
         }
         cout << endl;
     }
 }
 
-bool isValidMove(char tile, bool hasBoat, bool hasGear, string& message) {
+bool isValidMove(char tile, bool hasBoat, bool hasGear, int& health, string& message) {
     if (tile == WATER && !hasBoat) {
-        message = "You cannot cross water without a boat!";
+        health--;
+        message = "You cannot cross water without a boat! You lost 1 health.";
         return false;
     }
     if (tile == ROCKS && !hasGear) {
-        message = "You cannot cross rocks without climbing gear!";
+        health--;
+        message = "You cannot cross rocks without climbing gear! You lost 1 health.";
         return false;
     }
     return true;
 }
 
 bool isReachable(char** dungeon, int size, int startX, int startY, int targetX, int targetY, bool hasBoat, bool hasGear) {
-    bool visited[size][size] = {false};
+    bool visited[size][size];
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            visited[i][j] = false;
+        }
+    }
     queue<pair<int, int>> q;
     q.push({startX, startY});
     visited[startX][startY] = true;
@@ -140,6 +170,14 @@ void handleTreasure(char** dungeon, char** originalTiles, int playerX, int playe
     }
 }
 
+void handleMonster(int& health, string& message) {
+    health--;
+    message = "You encountered a monster! You lost 1 health.";
+    if (health <= 0) {
+        message = "You have been defeated by the monster! Game over.";
+    }
+}
+
 int main() {
     char rules;
     int chest_amt;
@@ -175,7 +213,11 @@ int main() {
          << "2. The Darkreach Catacombs (medium)\n"
          << "3. The Forsaken Vaults (hard)\n"
          << "Dungeon Choice: ";
-    cin >> diff;
+    while (!(cin >> diff) || diff < 1 || diff > 3) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Invalid input. Please enter a number between 1 and 3: ";
+    }
 
     char** dungeon = nullptr;
     char** originalTiles = nullptr;
@@ -201,10 +243,6 @@ int main() {
             cout << "You accidentally selected an invalid option and died of boredom, bye! :)" << endl;
             return 0;
     }
-
-    // Add a delay to let the player read the description
-    this_thread::sleep_for(chrono::seconds(3)); // 3-second delay
-
     dungeon = new char*[size];
     originalTiles = new char*[size];
     for (int i = 0; i < size; ++i) {
@@ -230,6 +268,7 @@ int main() {
     }
 
     int treasuresCollected = 0;
+    int health = MAX_HEALTH;
     char move;
     string message;
     while (true) {
@@ -242,41 +281,53 @@ int main() {
             this_thread::sleep_for(chrono::milliseconds(1000));
         }
 
-        cout << "Enter your move (w/a/s/d to move up/left/down/right, q to quit): ";
-        cin >> move;
-
-        int newX = playerX;
-        int newY = playerY;
-
-        if (move == 'w') newX--; 
-        else if (move == 'a') newY--; 
-        else if (move == 's') newX++; 
-        else if (move == 'd') newY++; 
-        else if (move == 'q') break; 
-        else {
-            message = "Invalid move! Please use w/a/s/d or q.";
-            continue;
+        if (health <= 0) {
+            cout << "Game over! You have run out of health." << endl;
+            break;
         }
 
-        if (newX >= 0 && newX < size && newY >= 0 && newY < size) {
-            if (isValidMove(dungeon[newX][newY], boat, gear, message)) {
-                dungeon[playerX][playerY] = originalTiles[playerX][playerY];
-                playerX = newX;
-                playerY = newY;
-                dungeon[playerX][playerY] = PLAYER;
-                handleTreasure(dungeon, originalTiles, playerX, playerY, size, treasuresCollected, boat, gear, message);
-            }
-        } else {
-            message = "You can't move outside the dungeon!";
-        }
-    }
+                   if (treasuresCollected >= chest_amt) {
+               cout << "Congratulations! You have collected all the treasures and won the game!" << endl;
+               break;
+           }
 
-    for (int i = 0; i < size; ++i) {
-        delete[] dungeon[i];
-        delete[] originalTiles[i];
-    }
-    delete[] dungeon;
-    delete[] originalTiles;
+           cout << "Enter your move (w/a/s/d to move up/left/down/right, q to quit): ";
+           cin >> move;
 
-    return 0;
-}
+           int newX = playerX;
+           int newY = playerY;
+
+           if (move == 'w') newX--; 
+           else if (move == 'a') newY--; 
+           else if (move == 's') newX++; 
+           else if (move == 'd') newY++; 
+           else if (move == 'q') break; 
+           else {
+               message = "Invalid move! Please use w/a/s/d or q.";
+               continue;
+           }
+
+           if (newX >= 0 && newX < size && newY >= 0 && newY < size) {
+               if (dungeon[newX][newY] == MONSTER) {
+                   handleMonster(health, message);
+               } else if (isValidMove(dungeon[newX][newY], boat, gear, health, message)) {
+                   dungeon[playerX][playerY] = originalTiles[playerX][playerY];
+                   playerX = newX;
+                   playerY = newY;
+                   dungeon[playerX][playerY] = PLAYER;
+                   handleTreasure(dungeon, originalTiles, playerX, playerY, size, treasuresCollected, boat, gear, message);
+               }
+           } else {
+               message = "You can't move outside the dungeon!";
+           }
+       }
+
+       for (int i = 0; i < size; ++i) {
+           delete[] dungeon[i];
+           delete[] originalTiles[i];
+       }
+       delete[] dungeon;
+       delete[] originalTiles;
+
+       return 0;
+   }
